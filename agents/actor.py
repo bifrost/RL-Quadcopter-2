@@ -1,5 +1,8 @@
 from keras import layers, models, optimizers
 from keras import backend as K
+from keras.layers import initializers
+from keras import regularizers
+
 
 class Actor:
     """Actor (Policy) Model."""
@@ -28,15 +31,28 @@ class Actor:
         """Build an actor (policy) network that maps states -> actions."""
         # Define input layer (states)
         states = layers.Input(shape=(self.state_size,), name='states')
-
+        
         # Add hidden layers
-        net = layers.Dense(units=32, activation='relu')(states)
-        net = layers.BatchNormalization()(net)
-        net = layers.Dense(units=64, activation='relu')(net)
-        net = layers.BatchNormalization()(net)
-        net = layers.Dense(units=32, activation='relu')(net)
-        net = layers.BatchNormalization()(net)
-
+        net = layers.BatchNormalization()(states)
+        net = layers.Dense(units=32, 
+                           kernel_regularizer=regularizers.l2(0.01),
+                           kernel_initializer=initializers.VarianceScaling(distribution="normal"),
+                           activation=None, use_bias=True)(net)
+        net = layers.Dropout(0.5)(net)  
+        net = layers.Activation('relu')(net)
+        net = layers.Dense(units=64, 
+                           kernel_regularizer=regularizers.l2(0.01),
+                           kernel_initializer=initializers.VarianceScaling(distribution="normal"), 
+                           activation=None, use_bias=True)(net)
+        net = layers.Activation('relu')(net)
+        net = layers.Dropout(0.5)(net)  
+        net = layers.Dense(units=128, 
+                           kernel_regularizer=regularizers.l2(0.01),
+                           kernel_initializer=initializers.VarianceScaling(distribution="normal"), 
+                           activation='relu')(net) 
+        net = layers.Dropout(0.5)(net)  
+        
+        
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 
         # Add final output layer with sigmoid activation
@@ -63,3 +79,5 @@ class Actor:
             inputs=[self.model.input, action_gradients, K.learning_phase()],
             outputs=[],
             updates=updates_op)
+        
+ # *paper: CONTINUOUS CONTROL WITH DEEP REINFORCEMENT LEARNING

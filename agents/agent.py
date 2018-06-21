@@ -2,8 +2,8 @@ import numpy as np
 
 from .ornstein_uhlenbeck_noise import OUNoise
 from .replay_buffer import ReplayBuffer
-from .ddpg_actor_model import Actor
-from .ddpg_critic_model import Critic
+from .actor import Actor
+from .critic import Critic
 
 class DDPG():
     """Reinforcement Learning agent that learns using DDPG."""
@@ -27,19 +27,19 @@ class DDPG():
         self.actor_target.model.set_weights(self.actor_local.model.get_weights())
 
         # Noise process
-        self.exploration_mu = 0
-        self.exploration_theta = 0.15
-        self.exploration_sigma = 0.4 #0.2
+        self.exploration_mu = 0.
+        self.exploration_theta = 0.3 #0.15
+        self.exploration_sigma = 0.3 #0.2
         self.noise = OUNoise(self.action_size, self.exploration_mu, self.exploration_theta, self.exploration_sigma)
 
         # Replay memory
-        self.buffer_size = 10000 #100000
+        self.buffer_size = 100000
         self.batch_size = 64
         self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
 
         # Algorithm parameters
-        self.gamma = 0.99  # discount factor
-        self.tau = 0.01 #0.01  # for soft update of target parameters
+        self.gamma = 0.9 # discount factor
+        self.tau = 0.001 #0.01  # for soft update of target parameters # from *paper
 
     def reset_episode(self):
         self.noise.reset()
@@ -63,7 +63,10 @@ class DDPG():
         """Returns actions for given state(s) as per current policy."""
         state = np.reshape(state, [-1, self.state_size])
         action = self.actor_local.model.predict(state)[0]
-        return list(action + self.noise.sample())  # add some noise for exploration
+        
+        noise = np.fromfunction(lambda i: self.noise.sample(), action.shape, dtype=float)
+        return list(action + noise)  # add some noise for exploration
+        #return list(action + self.noise.sample())  # add some noise for exploration
 
     def learn(self, experiences):
         """Update policy and value parameters using given batch of experience tuples."""
@@ -100,3 +103,5 @@ class DDPG():
 
         new_weights = self.tau * local_weights + (1 - self.tau) * target_weights
         target_model.set_weights(new_weights)
+        
+ # *paper: CONTINUOUS CONTROL WITH DEEP REINFORCEMENT LEARNING
