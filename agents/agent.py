@@ -104,4 +104,3 @@ class DDPG():
         new_weights = self.tau * local_weights + (1 - self.tau) * target_weights
         target_model.set_weights(new_weights)
         
- # *paper: CONTINUOUS CONTROL WITH DEEP REINFORCEMENT LEARNING

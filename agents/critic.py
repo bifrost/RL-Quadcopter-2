@@ -81,5 +81,3 @@ class Critic:
             inputs=[*self.model.input, K.learning_phase()],
             outputs=action_gradients)
         
-# *lecture: 9. 9. Deep Q-Learning Algorithm
-# *paper: CONTINUOUS CONTROL WITH DEEP REINFORCEMENT LEARNING
