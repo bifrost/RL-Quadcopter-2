@@ -46,7 +46,7 @@ class Actor:
                            activation=None, use_bias=True)(net)
         net = layers.Activation('relu')(net)
         net = layers.Dropout(0.5)(net)  
-        net = layers.Dense(units=128, 
+        net = layers.Dense(units=32, 
                            kernel_regularizer=regularizers.l2(0.01),
                            kernel_initializer=initializers.VarianceScaling(distribution="normal"), 
                            activation='relu')(net) 
@@ -73,11 +73,10 @@ class Actor:
         # Incorporate any additional losses here (e.g. from regularizers)
 
         # Define optimizer and training function
-        optimizer = optimizers.Adam()
+        optimizer = optimizers.Adam(0.00001, clipnorm=1.)
         updates_op = optimizer.get_updates(params=self.model.trainable_weights, loss=loss)
         self.train_fn = K.function(
             inputs=[self.model.input, action_gradients, K.learning_phase()],
             outputs=[],
             updates=updates_op)
         
- # *paper: CONTINUOUS CONTROL WITH DEEP REINFORCEMENT LEARNING

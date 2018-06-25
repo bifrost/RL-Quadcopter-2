@@ -29,13 +29,15 @@ class Critic:
         
         # Add hidden layer(s) for state pathway
         net_states = layers.BatchNormalization()(states) 
-        net_states = layers.Dense(units=128, 
+        net_states = layers.Dense(units=200, 
                                   kernel_regularizer=regularizers.l2(0.01),
+                                  kernel_initializer=initializers.VarianceScaling(distribution="normal"),
                                   activation=None, use_bias=True)(net_states)
-        net_states = layers.BatchNormalization()(net_states) 
+        #net_states = layers.BatchNormalization()(net_states) 
         net_states = layers.Dropout(0.5)(net_states)
         net_states = layers.Activation("relu")(net_states)
-        net_states = layers.Dense(units=128, 
+        net_states = layers.Dense(units=200, 
+                                  kernel_initializer=initializers.VarianceScaling(distribution="normal"),
                                   kernel_regularizer=regularizers.l2(0.01),
                                   activation=None)(net_states)
         net_states = layers.Dropout(0.5)(net_states)
@@ -43,13 +45,15 @@ class Critic:
 
         # Add hidden layer(s) for action pathway
         net_actions = layers.BatchNormalization()(actions)
-        net_actions = layers.Dense(units=128, 
+        net_actions = layers.Dense(units=200, 
+                                  kernel_initializer=initializers.VarianceScaling(distribution="normal"),
                                   kernel_regularizer=regularizers.l2(0.01),
                                   activation=None, use_bias=True)(net_actions)
-        net_actions = layers.BatchNormalization()(net_actions)
+        #net_actions = layers.BatchNormalization()(net_actions)
         net_actions = layers.Dropout(0.5)(net_actions)
         net_actions = layers.Activation("relu")(net_actions)
-        net_actions = layers.Dense(units=128, 
+        net_actions = layers.Dense(units=200, 
+                                  kernel_initializer=initializers.VarianceScaling(distribution="normal"),
                                   kernel_regularizer=regularizers.l2(0.01),
                                   activation=None)(net_actions)
         net_actions = layers.Dropout(0.5)(net_actions)
@@ -70,7 +74,7 @@ class Critic:
         self.model = models.Model(inputs=[states, actions], outputs=Q_values)
 
         # Define optimizer and compile model for training with built-in loss function
-        optimizer = optimizers.Adam()
+        optimizer = optimizers.Adam(0.001, clipnorm=1.)
         self.model.compile(optimizer=optimizer, loss='mse')
 
         # Compute action gradients (derivative of Q values w.r.t. to actions)

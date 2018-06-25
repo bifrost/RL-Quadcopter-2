@@ -20,15 +20,19 @@ class Task():
         self.action_repeat = 3
 
         # state is based on pose, velocities and angle_velocities
-        #self.state_size = self.action_repeat * (6 + 6)
-        self.state_size = self.action_repeat * (6 + 3)
-        #self.state_size = self.action_repeat * 6
-        self.action_low = 0
-        self.action_high = 900
-        self.action_size = 4
+        self.state_size = self.action_repeat * 6
+        
+        # simplify the Action space to 4 delta rotor speeds [0,1,2,3] and the mean rotor speeds [4].
+        self.action_low = np.array([0., 0., 0., 0., 0.])
+        self.action_high = np.array([10., 10., 10., 10., 895])
+        self.action_size = 5
 
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array([0., 0., 10.]) 
+        
+        self.maxRange = [self.sim.upper_bounds[:3] - self.target_pos[:3], self.target_pos[:3] - self.sim.lower_bounds[:3]]
+        self.maxRange = np.max(self.maxRange,axis=0)
+        print(self.maxRange)
 
     def get_reward(self, rotor_speeds):
         """Uses current pose of sim to return reward."""
@@ -39,11 +43,21 @@ class Task():
         sv = np.dot(s, v) 
         sa = np.dot(s, a) 
 
-        revard_s_close = np.clip(1. - np.linalg.norm(s*[.1, .1, .05]), 0, 1)
-        revard_s = np.clip(1. - np.linalg.norm(s)*.01, 0, 1)
-        revard_sv = np.clip(sv*0.01, 0, 1)
-        reward = 1. + revard_s_close + revard_s + revard_sv
-            
+
+        d_normalized = np.linalg.norm(np.linalg.norm(s/self.maxRange))
+        d_reward = 1. - 2.*np.power(d_normalized, .5)
+        
+        
+        # The quadcopter has a tendency to get stuck in the local minimum pos [0, 0, 0]
+        # when simplify the Action space to 5 actions: 4 delta rotor speeds plus mean rotor speeds.
+        # The purpose of local_minimum_discount is to push the quadcopter away from this point
+        local_minimum = self.sim.pose[:3] - np.array([self.target_pos[0], self.target_pos[1], 0.])
+        local_minimum = np.linalg.norm(local_minimum / [2., 2., 8.])
+        local_minimum_discount = np.power(1. - np.clip(1. - local_minimum, 0, 1), 4.)
+        
+        
+        reward = d_reward * local_minimum_discount
+        
         return reward
 
     def step(self, rotor_speeds):
@@ -54,8 +68,6 @@ class Task():
             done = self.sim.next_timestep(rotor_speeds) # update the sim pose and velocities
             reward += self.get_reward(rotor_speeds) 
             pose_all.append(self.sim.pose)
-            pose_all.append(self.sim.v)
-            #pose_all.append(self.sim.angular_v)
         next_state = np.concatenate(pose_all)
         
         return next_state, reward, done
@@ -65,7 +77,5 @@ class Task():
         self.sim.reset()
         pose_all = []
         pose_all.append(self.sim.pose)
-        pose_all.append(self.sim.v)
-        #pose_all.append(self.sim.angular_v)
         state = np.concatenate(pose_all * self.action_repeat) 
         return state
